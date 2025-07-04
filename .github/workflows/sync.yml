@@ -1,39 +1,28 @@
-name: Upstream Sync
-
-permissions:
-  contents: write
+name: Sync Upstream
 
 on:
   schedule:
-    - cron: "0 0 * * *" # every day
+    - cron: '0 0 * * *'  # 星号分别表示：分钟(0) 小时(0) 日(*) 月(*) 星期(*) 
   workflow_dispatch:
 
 jobs:
-  sync_latest_from_upstream:
-    name: Sync latest commits from upstream repo
+  sync:
     runs-on: ubuntu-latest
-    if: ${{ github.event.repository.fork }}
-
     steps:
-      # Step 1: run a standard checkout action
-      - name: Checkout target repo
-        uses: actions/checkout@v3
-
-      # Step 2: run the sync action
-      - name: Sync upstream changes
-        id: sync
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          upstream_sync_repo: ZhiXuanWang/cf-speed-dns
-          upstream_sync_branch: main
-          target_sync_branch: main
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }} # automatically generated, no need to set
+          fetch-depth: 0
 
-          # Set test_mode true to run tests instead of the true action!!
-          test_mode: false
-
-      - name: Sync check
-        if: failure()
+      - name: Set Git config
         run: |
-          echo "[Error] 由于上游仓库的 workflow 文件变更，导致 GitHub 自动暂停了本次自动更新，你需要手动 Sync Fork 一次。"
-          exit 1
+          git config user.name "jackloves"
+          git config user.email "${{ secrets.GIT_EMAIL }}"
+
+      - name: Sync upstream
+        run: |
+          git remote add upstream https://github.com/jackloves111/cf-speed-dns.git || true
+          git fetch upstream
+          git checkout main
+          git merge upstream/main
+          git push origin main
